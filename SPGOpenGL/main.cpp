@@ -12,6 +12,7 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include "obj_loader.hpp"
 
 // dimensiunile încăperii (trebuie să fie în sync cu room_data.cpp)
 const float ROOM_WIDTH = 4.0f;
@@ -47,6 +48,11 @@ GLuint shaderProgram;
 GLuint wallDiffuse, wallNormal;
 GLuint floorDiffuse, floorNormal;
 GLuint ceilDiffuse, ceilNormal;
+
+
+Mesh chandelier;
+GLuint chandelierTex;
+glm::vec3 chandelierPos = { 0.0f,  ROOM_HEIGHT - 4.0f, 3.0f };
 
 
 // utilitar: citeşte un fişier text în std::string
@@ -111,7 +117,7 @@ void doMovement() {
 
     // limite interioare pereţi
     cameraPos.x = glm::clamp(cameraPos.x, ROOM_MIN_X, ROOM_MAX_X);
-    cameraPos.z = glm::clamp(cameraPos.z, ROOM_MIN_Z, ROOM_MAX_Z);
+    cameraPos.z = glm::clamp(cameraPos.z, ROOM_MIN_Z - 10.0f, ROOM_MAX_Z + 10.0f);
     // blocăm Y la nivelul ochilor
     cameraPos.y = CAMERA_Y;
 }
@@ -151,8 +157,34 @@ void display() {
     glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
     // lumina în centru tavan
-    glm::vec3 lightPos = { 0.0f, ROOM_HEIGHT, 0.0f };
+    //glm::vec3 lightPos = { 0.0f, ROOM_HEIGHT, 0.0f };
+    glm::vec3 lightPos = chandelierPos;
     glm::vec3 viewPos = cameraPos;
+
+
+	//desenare chandelier
+    glm::mat4 chandModel = glm::translate(glm::mat4(2.0f), chandelierPos);
+    chandModel = glm::scale(chandModel, glm::vec3(1.0f)); // ajustează după caz
+
+    glm::mat4 chandMVP = proj * view * chandModel;
+    glm::mat4 chandNormalMatrix = glm::transpose(glm::inverse(chandModel));
+
+    glUseProgram(shaderProgram);
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_FALSE, glm::value_ptr(chandMVP));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(chandNormalMatrix));
+    glUniform3fv(glGetUniformLocation(shaderProgram, "lightPos"), 1, glm::value_ptr(chandelierPos)); // LUMINA REALĂ
+
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, chandelierTex);
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1); // fallback normal map
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, chandelierTex); // dacă nu ai un normal map, folosești aceeași
+
+    glBindVertexArray(chandelier.vao);
+    glDrawElements(GL_TRIANGLES, chandelier.indexCount, GL_UNSIGNED_INT, 0);
+    glBindVertexArray(0);
+
 
     // apel către room_data
     drawRoom(proj, view, lightPos, viewPos, 1.0f);
@@ -187,6 +219,9 @@ int main(int argc, char** argv) {
     floorNormal = loadTex("Textures/FloorWood/floor_NormalGL.jpg");
     ceilDiffuse = loadTex("Textures/Ceiling/ceiling_Color.jpg");
     ceilNormal = loadTex("Textures/Ceiling/ceiling_NormalGL.jpg");
+    chandelier = loadOBJ("Objects/Chandelier/chandelier.obj");
+    chandelierTex = loadTex("Objects/Chandelier/chandelier_diffuse.jpg");
+
 
     // Inițializează room cu toate texturile
     initRoom(wallDiffuse, wallNormal, floorDiffuse, floorNormal, ceilDiffuse, ceilNormal, shaderProgram);

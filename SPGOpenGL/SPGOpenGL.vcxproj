@@ -118,6 +118,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="obj_loader.cpp" />
     <ClCompile Include="room_data.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -125,6 +126,7 @@
     <None Include="vertex.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="obj_loader.hpp" />
     <ClInclude Include="room_data.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>
