@@ -8,7 +8,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include "room_data.h"    // conţine initRoom(...) şi drawRoom(...)
+#include "room_data.h"    
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -44,7 +44,10 @@ bool  keys[256] = { false };
 
 // GL resurse
 GLuint shaderProgram;
-GLuint diffuseTex, normalTex;
+GLuint wallDiffuse, wallNormal;
+GLuint floorDiffuse, floorNormal;
+GLuint ceilDiffuse, ceilNormal;
+
 
 // utilitar: citeşte un fişier text în std::string
 std::string readFile(const char* path) {
@@ -89,6 +92,9 @@ GLuint loadTex(const char* path) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     stbi_image_free(data);
+    if (!data) {
+        std::cerr << "Failed to load texture: " << path << std::endl;
+    }
     return id;
 }
 
@@ -174,9 +180,17 @@ int main(int argc, char** argv) {
 
     // shaders + texturi + iniţializare room
     initShaders();
-    diffuseTex = loadTex("brickwall.jpg");
-    normalTex = loadTex("brickwall_normal.jpg");
-    initRoom(diffuseTex, normalTex, shaderProgram);
+    // Încarcă texturile
+    wallDiffuse = loadTex("Textures/Wall/wall_Color.jpg");
+    wallNormal = loadTex("Textures/Wall/wall_NormalGL.jpg");
+    floorDiffuse = loadTex("Textures/FloorWood/floor_Color.jpg");
+    floorNormal = loadTex("Textures/FloorWood/floor_NormalGL.jpg");
+    ceilDiffuse = loadTex("Textures/Ceiling/ceiling_Color.jpg");
+    ceilNormal = loadTex("Textures/Ceiling/ceiling_NormalGL.jpg");
+
+    // Inițializează room cu toate texturile
+    initRoom(wallDiffuse, wallNormal, floorDiffuse, floorNormal, ceilDiffuse, ceilNormal, shaderProgram);
+
 
     glutMainLoop();
     return 0;
