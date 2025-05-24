@@ -18,12 +18,21 @@
     <ClCompile Include="obj_loader.cpp">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="window_data.cpp">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment.frag">
       <Filter>shaders</Filter>
     </None>
     <None Include="vertex.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="window.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="window.vert">
       <Filter>shaders</Filter>
     </None>
   </ItemGroup>
@@ -33,6 +42,9 @@
       <Filter>src</Filter>
     </ClInclude>
     <ClInclude Include="obj_loader.hpp">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="window_data.h">
       <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>

@@ -120,15 +120,19 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="obj_loader.cpp" />
     <ClCompile Include="room_data.cpp" />
+    <ClCompile Include="window_data.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment.frag" />
     <None Include="vertex.vert" />
+    <None Include="window.frag" />
+    <None Include="window.vert" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="obj_loader.hpp" />
     <ClInclude Include="room_data.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="window_data.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
