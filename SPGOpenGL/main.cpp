@@ -14,6 +14,11 @@
 #include <iostream>
 #include "obj_loader.hpp"
 
+#ifndef M_PI
+#define M_PI 3.14
+#endif
+
+
 // dimensiunile încăperii (trebuie să fie în sync cu room_data.cpp)
 const float ROOM_WIDTH = 4.0f;
 const float ROOM_LENGTH = 20.0f;
@@ -33,8 +38,7 @@ const float ROOM_MAX_Z = ROOM_LENGTH / 2 - CLAMP_EPS;
 static const int WIDTH = 800, HEIGHT = 600;
 
 // stare camera
-//glm::vec3 cameraPos = { 0.0f, CAMERA_Y +500, ROOM_LENGTH / 2 - CLAMP_EPS };
-glm::vec3 cameraPos = { 0.0f, -2.0f, 3.0f};
+glm::vec3 cameraPos = { 0.0f, -2.0f, 3.0f };
 glm::vec3 cameraFront = { 0.0f, 0.0f, -1.0f };
 glm::vec3 cameraUp = { 0.0f, 1.0f,  0.0f };
 float yaw = -90.0f, pitch = 0.0f, fov = 45.0f;
@@ -49,10 +53,15 @@ GLuint wallDiffuse, wallNormal;
 GLuint floorDiffuse, floorNormal;
 GLuint ceilDiffuse, ceilNormal;
 
-
 Mesh chandelier;
 GLuint chandelierTex;
 glm::vec3 chandelierPos = { 0.0f,  ROOM_HEIGHT - 4.0f, 3.0f };
+
+// Multiple light sources for chandelier bulbs
+const int MAX_LIGHTS = 6;
+glm::vec3 lightPositions[MAX_LIGHTS];
+int numLights = 6;
+float lightIntensity = 0.5f;
 
 
 // utilitar: citeşte un fişier text în std::string
@@ -81,6 +90,22 @@ void initShaders() {
     glAttachShader(shaderProgram, vs);
     glAttachShader(shaderProgram, fs);
     glLinkProgram(shaderProgram);
+}
+
+// Initialize light positions around the chandelier
+void initLights() {
+    float radius = 0.8f; // Radius around chandelier center
+    float height = chandelierPos.y - 0.3f; // Slightly below chandelier center
+
+    // Create 6 lights in a circle around the chandelier
+    for (int i = 0; i < numLights; i++) {
+        float angle = (2.0f * M_PI * i) / numLights;
+        lightPositions[i] = glm::vec3(
+            chandelierPos.x + radius * cos(angle),
+            height,
+            chandelierPos.z + radius * sin(angle)
+        );
+    }
 }
 
 // încarcă o textură de pe disc
@@ -117,14 +142,28 @@ void doMovement() {
 
     // limite interioare pereţi
     cameraPos.x = glm::clamp(cameraPos.x, ROOM_MIN_X, ROOM_MAX_X);
-    cameraPos.z = glm::clamp(cameraPos.z, ROOM_MIN_Z - 10.0f, ROOM_MAX_Z + 10.0f);
+    cameraPos.z = glm::clamp(cameraPos.z, ROOM_MIN_Z, ROOM_MAX_Z );
     // blocăm Y la nivelul ochilor
     cameraPos.y = CAMERA_Y;
 }
 
 // input
-void keyDown(unsigned char k, int x, int y) { keys[k] = true; }
+//void keyDown(unsigned char k, int x, int y) { keys[k] = true; }
 void keyUp(unsigned char k, int x, int y) { keys[k] = false; }
+
+void keyDown(unsigned char k, int x, int y) {
+    keys[k] = true;
+
+    // Add these controls
+    if (k == '+' || k == '=') {
+        lightIntensity = std::min(2.0f, lightIntensity + 0.1f);
+        std::cout << "Light intensity: " << lightIntensity << std::endl;
+    }
+    if (k == '-') {
+        lightIntensity = std::max(0.1f, lightIntensity - 0.1f);
+        std::cout << "Light intensity: " << lightIntensity << std::endl;
+    }
+}
 
 // mouse look
 void mouseMove(int x, int y) {
@@ -143,6 +182,20 @@ void mouseMove(int x, int y) {
 void reshape(int w, int h) { glViewport(0, 0, w, h); }
 void idle() { glutPostRedisplay(); }
 
+// Helper function to set lighting uniforms
+void setLightingUniforms(GLuint program, const glm::vec3& viewPos) {
+    glUniform3fv(glGetUniformLocation(program, "viewPos"), 1, glm::value_ptr(viewPos));
+    glUniform1i(glGetUniformLocation(program, "numLights"), numLights);
+    glUniform1f(glGetUniformLocation(program, "lightIntensity"), lightIntensity);  // Add this line
+
+    for (int i = 0; i < numLights; i++) {
+        std::string uniformName = "lightPositions[" + std::to_string(i) + "]";
+        glUniform3fv(glGetUniformLocation(program, uniformName.c_str()), 1, glm::value_ptr(lightPositions[i]));
+    }
+
+    glUniform1f(glGetUniformLocation(program, "normalMapStrength"), 1.0f);
+}
+
 // desenare
 void display() {
     float now = glutGet(GLUT_ELAPSED_TIME) / 1000.0f;
@@ -155,39 +208,36 @@ void display() {
     // proiectie + view
     glm::mat4 proj = glm::perspective(glm::radians(fov), (float)WIDTH / HEIGHT, 0.1f, 100.0f);
     glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-    // lumina în centru tavan
-    //glm::vec3 lightPos = { 0.0f, ROOM_HEIGHT, 0.0f };
-    glm::vec3 lightPos = chandelierPos;
     glm::vec3 viewPos = cameraPos;
 
-
-	//desenare chandelier
-    glm::mat4 chandModel = glm::translate(glm::mat4(2.0f), chandelierPos);
-    chandModel = glm::scale(chandModel, glm::vec3(1.0f)); // ajustează după caz
+    // desenare chandelier
+    glm::mat4 chandModel = glm::translate(glm::mat4(1.0f), chandelierPos);
+    chandModel = glm::scale(chandModel, glm::vec3(1.0f));
 
     glm::mat4 chandMVP = proj * view * chandModel;
     glm::mat4 chandNormalMatrix = glm::transpose(glm::inverse(chandModel));
 
     glUseProgram(shaderProgram);
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "mvpMatrix"), 1, GL_FALSE, glm::value_ptr(chandMVP));
+    glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(chandModel));
     glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(chandNormalMatrix));
-    glUniform3fv(glGetUniformLocation(shaderProgram, "lightPos"), 1, glm::value_ptr(chandelierPos)); // LUMINA REALĂ
+
+    // Set lighting uniforms
+    setLightingUniforms(shaderProgram, viewPos);
 
     glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, chandelierTex);
-    glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1); // fallback normal map
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture2"), 1);
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, chandelierTex); // dacă nu ai un normal map, folosești aceeași
+    glBindTexture(GL_TEXTURE_2D, chandelierTex); // Using same texture as normal map fallback
 
     glBindVertexArray(chandelier.vao);
     glDrawElements(GL_TRIANGLES, chandelier.indexCount, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
-
-    // apel către room_data
-    drawRoom(proj, view, lightPos, viewPos, 1.0f);
+    // draw room with updated lighting system
+    drawRoom(proj, view, lightPositions, numLights, viewPos, 1.0f, lightIntensity);
 
     glutSwapBuffers();
 }
@@ -212,6 +262,10 @@ int main(int argc, char** argv) {
 
     // shaders + texturi + iniţializare room
     initShaders();
+
+    // Initialize lighting system
+    initLights();
+
     // Încarcă texturile
     wallDiffuse = loadTex("Textures/Wall/wall_Color.jpg");
     wallNormal = loadTex("Textures/Wall/wall_NormalGL.jpg");
@@ -222,10 +276,8 @@ int main(int argc, char** argv) {
     chandelier = loadOBJ("Objects/Chandelier/chandelier.obj");
     chandelierTex = loadTex("Objects/Chandelier/chandelier_diffuse.jpg");
 
-
     // Inițializează room cu toate texturile
     initRoom(wallDiffuse, wallNormal, floorDiffuse, floorNormal, ceilDiffuse, ceilNormal, shaderProgram);
-
 
     glutMainLoop();
     return 0;
