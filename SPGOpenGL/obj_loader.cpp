@@ -3,14 +3,27 @@
 #include <sstream>
 #include <iostream>
 #include <algorithm>
+#include <map>
+
+struct VertexKey {
+    int pos, tex, norm;
+    bool operator<(const VertexKey& other) const {
+        if (pos != other.pos) return pos < other.pos;
+        if (tex != other.tex) return tex < other.tex;
+        return norm < other.norm;
+    }
+};
 
 Mesh loadOBJ(const std::string& path) {
     std::vector<glm::vec3> positions;
     std::vector<glm::vec2> texCoords;
     std::vector<glm::vec3> normals;
     std::vector<GLuint> indices;
-
     std::vector<float> vertexData;
+
+
+    std::map<VertexKey, GLuint> vertexMap;
+    GLuint vertexCount = 0;
 
     std::ifstream file(path);
     if (!file) {
@@ -20,9 +33,12 @@ Mesh loadOBJ(const std::string& path) {
 
     std::string line;
     while (std::getline(file, line)) {
+        if (line.empty()) continue;
+
         std::stringstream ss(line);
         std::string type;
         ss >> type;
+
         if (type == "v") {
             glm::vec3 v;
             ss >> v.x >> v.y >> v.z;
@@ -36,23 +52,59 @@ Mesh loadOBJ(const std::string& path) {
         else if (type == "vn") {
             glm::vec3 n;
             ss >> n.x >> n.y >> n.z;
-            normals.push_back(n);
+            normals.push_back(glm::normalize(n));
         }
         else if (type == "f") {
-            for (int i = 0; i < 3; ++i) {
-                std::string face;
-                ss >> face;
+            std::vector<std::string> faceVertices;
+            std::string vertex;
+            while (ss >> vertex) {
+                faceVertices.push_back(vertex);
+            }
+
+           
+            std::vector<int> triangleIndices;
+            if (faceVertices.size() == 3) {
+                triangleIndices = { 0, 1, 2 };
+            }
+            else if (faceVertices.size() == 4) {
+                triangleIndices = { 0, 1, 2, 0, 2, 3 }; 
+            }
+
+            for (int idx : triangleIndices) {
+                std::string face = faceVertices[idx];
                 std::replace(face.begin(), face.end(), '/', ' ');
                 std::stringstream fss(face);
-                int vi, ti, ni;
-                fss >> vi >> ti >> ni;
 
-                glm::vec3 v = positions[vi - 1];
-                glm::vec2 uv = texCoords[ti - 1];
-                glm::vec3 n = normals[ni - 1];
+                int vi = 0, ti = 0, ni = 0;
+                fss >> vi;
+                if (fss.peek() != EOF) fss >> ti;
+                if (fss.peek() != EOF) fss >> ni;
 
-                vertexData.insert(vertexData.end(), { v.x, v.y, v.z, n.x, n.y, n.z, uv.x, uv.y });
-                indices.push_back((GLuint)(indices.size()));
+                if (vi > 0 && vi <= positions.size()) {
+                    VertexKey key = { vi, ti, ni };
+
+                    auto it = vertexMap.find(key);
+                    if (it != vertexMap.end()) {
+                       
+                        indices.push_back(it->second);
+                    }
+                    else {
+                       
+                        glm::vec3 pos = positions[vi - 1];
+                        glm::vec2 tex = (ti > 0 && ti <= texCoords.size()) ? texCoords[ti - 1] : glm::vec2(0.0f);
+                        glm::vec3 norm = (ni > 0 && ni <= normals.size()) ? normals[ni - 1] : glm::vec3(0.0f, 1.0f, 0.0f);
+
+                        vertexData.insert(vertexData.end(), {
+                            pos.x, pos.y, pos.z,
+                            norm.x, norm.y, norm.z,
+                            tex.x, tex.y
+                            });
+
+                        vertexMap[key] = vertexCount;
+                        indices.push_back(vertexCount);
+                        vertexCount++;
+                    }
+                }
             }
         }
     }
@@ -72,15 +124,22 @@ Mesh loadOBJ(const std::string& path) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(GLuint), indices.data(), GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);           // Position
+    // Position
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float))); // Normal
+    // Normal
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float))); // TexCoords
+    // TexCoords
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
     glBindVertexArray(0);
-    std::cout << "Loaded vertices: " << vertexData.size() / 8 << "\n";
-    std::cout << "Loaded indices: " << indices.size() << "\n";
+
+    std::cout << "Loaded model: " << path << std::endl;
+    std::cout << "Unique vertices: " << vertexCount << std::endl;
+    std::cout << "Indices: " << indices.size() << std::endl;
+    std::cout << "Triangles: " << indices.size() / 3 << std::endl;
+
     return mesh;
 }

@@ -8,35 +8,33 @@
 #include <iostream>
 
 #include "stb_image.h"
+using namespace std;
 
-// Variabile globale pentru geamuri
 GLuint windowVAO, windowVBO, windowEBO;
 GLuint windowShaderProgram;
 GLuint windowFrameTex, landscape1Tex, landscape2Tex;
 
-// Func?ii utilitare locale
 namespace {
-    std::string readFile(const char* path) {
-        std::ifstream f(path);
-        std::string s, line;
-        while (std::getline(f, line)) s += line + "\n";
+    string readFile(const char* path) {
+        ifstream f(path);
+        string s, line;
+        while (getline(f, line)) s += line + "\n";
         return s;
     }
 
     GLuint compileShader(const char* path, GLenum type) {
-        std::string src = readFile(path);
+        string src = readFile(path);
         const char* c = src.c_str();
         GLuint sh = glCreateShader(type);
         glShaderSource(sh, 1, &c, nullptr);
         glCompileShader(sh);
 
-        // Verificã erori de compilare
         GLint success;
         glGetShaderiv(sh, GL_COMPILE_STATUS, &success);
         if (!success) {
             char infoLog[512];
             glGetShaderInfoLog(sh, 512, NULL, infoLog);
-            std::cerr << "Shader compilation error (" << path << "): " << infoLog << std::endl;
+            cerr << "Shader compilation error (" << path << "): " << infoLog << endl;
         }
 
         return sh;
@@ -50,7 +48,7 @@ namespace {
         unsigned char* data = stbi_load(path, &w, &h, &comp, 0);
 
         if (!data) {
-            std::cerr << "Failed to load texture: " << path << std::endl;
+            cerr << "Failed to load texture: " << path << endl;
             return 0;
         }
 
@@ -70,27 +68,23 @@ namespace {
 }
 
 void initWindows() {
-    // Geometria pentru geamuri
-    // Dimensiuni: 3x2 unitã?i, centrate pe pere?ii din fa?ã ?i spate
-    float windowVertices[] = {
-        // Pozi?ie           // Normalã        // TexCoord
-        // Geam EST (pe peretele din fa?ã, Z = +10)
-        -1.2f, -0.3f, 9.8f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f,  // Bottom-left
-     1.2f, -0.3f, 9.8f,   0.0f, 0.0f, -1.0f,   1.0f, 0.0f,  // Bottom-right
-     1.2f,  1.2f, 9.8f,   0.0f, 0.0f, -1.0f,   1.0f, 1.0f,  // Top-right
-    -1.2f,  1.2f, 9.8f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f,  // Top-left
 
-    // Geam VEST (pe peretele din spate, Z = -9.8f)
-    -1.2f, -0.3f, -9.8f,  0.0f, 0.0f, 1.0f,    0.0f, 0.0f,  // Bottom-left
-     1.2f, -0.3f, -9.8f,  0.0f, 0.0f, 1.0f,    1.0f, 0.0f,  // Bottom-right
-     1.2f,  1.2f, -9.8f,  0.0f, 0.0f, 1.0f,    1.0f, 1.0f,  // Top-right
-    -1.2f,  1.2f, -9.8f,  0.0f, 0.0f, 1.0f,    0.0f, 1.0f,  // Top-left
+    float windowVertices[] = {
+        // Pozitie           // Normala        // TexCoord
+     
+        -1.0f, -0.8f, 9.8f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f,  // Bottom-left
+         1.0f, -0.8f, 9.8f,   0.0f, 0.0f, -1.0f,   1.0f, 0.0f,  // Bottom-right
+         1.0f,  0.7f, 9.8f,   0.0f, 0.0f, -1.0f,   1.0f, 1.0f,  // Top-right
+        -1.0f,  0.7f, 9.8f,   0.0f, 0.0f, -1.0f,   0.0f, 1.0f,  // Top-left
+
+        -1.0f, -0.8f, -9.8f,  0.0f, 0.0f, 1.0f,    0.0f, 0.0f,  // Bottom-left
+         1.0f, -0.8f, -9.8f,  0.0f, 0.0f, 1.0f,    1.0f, 0.0f,  // Bottom-right
+         1.0f,  0.7f, -9.8f,  0.0f, 0.0f, 1.0f,    1.0f, 1.0f,  // Top-right
+        -1.0f,  0.7f, -9.8f,  0.0f, 0.0f, 1.0f,    0.0f, 1.0f,  // Top-left
     };
 
     GLuint windowIndices[] = {
-        // Geam EST (fa?ã)
         0, 1, 2, 2, 3, 0,
-        // Geam VEST (spate)
         4, 5, 6, 6, 7, 4
     };
 
@@ -118,7 +112,7 @@ void initWindows() {
 
     glBindVertexArray(0);
 
-    std::cout << "Windows geometry initialized successfully!" << std::endl;
+    cout << "Windows geometry initialized successfully!" << endl;
 }
 
 void initWindowShaders() {
@@ -130,19 +124,17 @@ void initWindowShaders() {
     glAttachShader(windowShaderProgram, fs);
     glLinkProgram(windowShaderProgram);
 
-    // Verificã linking-ul
     GLint success;
     glGetProgramiv(windowShaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
         char infoLog[512];
         glGetProgramInfoLog(windowShaderProgram, 512, NULL, infoLog);
-        std::cerr << "Window shader linking error: " << infoLog << std::endl;
+        cerr << "Window shader linking error: " << infoLog << endl;
     }
     else {
-        std::cout << "Window shaders compiled and linked successfully!" << std::endl;
+        cout << "Window shaders compiled and linked successfully!" << endl;
     }
 
-    // Curã?ã shader-ele
     glDeleteShader(vs);
     glDeleteShader(fs);
 }
@@ -153,10 +145,10 @@ void loadWindowTextures() {
     landscape2Tex = loadTexture("Textures/Landscape/landscape2.jpg");
 
     if (windowFrameTex && landscape1Tex && landscape2Tex) {
-        std::cout << "Window textures loaded successfully!" << std::endl;
+        cout << "Window textures loaded successfully!" << endl;
     }
     else {
-        std::cerr << "Failed to load some window textures!" << std::endl;
+        cerr << "Failed to load some window textures!" << endl;
     }
 }
 
@@ -164,18 +156,15 @@ void drawWindows(const glm::mat4& projection, const glm::mat4& view,
     const glm::vec3& viewPos, float timeOfDay,
     const glm::vec3& sunPosition, float sunIntensity) {
 
-    // Activeazã blending pentru transparen?ã
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     glUseProgram(windowShaderProgram);
 
-    // Matrici de transformare
     glm::mat4 model = glm::mat4(1.0f);
     glm::mat4 mvp = projection * view * model;
     glm::mat4 normalMatrix = glm::transpose(glm::inverse(model));
 
-    // Seteazã uniform-urile
     glUniformMatrix4fv(glGetUniformLocation(windowShaderProgram, "mvpMatrix"), 1, GL_FALSE, glm::value_ptr(mvp));
     glUniformMatrix4fv(glGetUniformLocation(windowShaderProgram, "modelMatrix"), 1, GL_FALSE, glm::value_ptr(model));
     glUniformMatrix4fv(glGetUniformLocation(windowShaderProgram, "normalMatrix"), 1, GL_FALSE, glm::value_ptr(normalMatrix));
@@ -187,19 +176,16 @@ void drawWindows(const glm::mat4& projection, const glm::mat4& view,
 
     glBindVertexArray(windowVAO);
 
-    // Seteazã textura ramei (comunã pentru ambele geamuri)
     glUniform1i(glGetUniformLocation(windowShaderProgram, "windowFrame"), 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, windowFrameTex);
 
-    // Deseneazã geamul EST (cu landscape1)
     glUniform1i(glGetUniformLocation(windowShaderProgram, "landscape"), 1);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, landscape1Tex);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(0 * sizeof(GLuint)));
 
-    // Deseneazã geamul VEST (cu landscape2)
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, landscape2Tex);
 
@@ -218,5 +204,5 @@ void cleanupWindows() {
     glDeleteTextures(1, &landscape1Tex);
     glDeleteTextures(1, &landscape2Tex);
 
-    std::cout << "Window resources cleaned up!" << std::endl;
+    cout << "Window resources cleaned up!" << endl;
 }
