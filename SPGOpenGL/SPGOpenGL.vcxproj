@@ -120,10 +120,13 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="obj_loader.cpp" />
     <ClCompile Include="room_data.cpp" />
+    <ClCompile Include="shadow_data.cpp" />
     <ClCompile Include="window_data.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="fragment.frag" />
+    <None Include="shadow.frag" />
+    <None Include="shadow.vert" />
     <None Include="vertex.vert" />
     <None Include="window.frag" />
     <None Include="window.vert" />
@@ -131,6 +134,7 @@
   <ItemGroup>
     <ClInclude Include="obj_loader.hpp" />
     <ClInclude Include="room_data.h" />
+    <ClInclude Include="shadow_data.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="window_data.h" />
   </ItemGroup>
