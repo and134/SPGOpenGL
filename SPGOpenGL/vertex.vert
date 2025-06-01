@@ -16,14 +16,9 @@ out VS_OUT {
 } vs;
 
 void main(){
-    // Transform position to world space
     vs.FragPos = (modelMatrix * vec4(aPos, 1.0)).xyz;
-    
-    // Transform normal to world space
     vs.Normal = normalize((normalMatrix * vec4(aNorm, 0.0)).xyz);
-    
-    // Calculate tangent and bitangent for normal mapping
-    // Simple tangent calculation - you might want to pass these as vertex attributes for better results
+
     vec3 c1 = cross(vs.Normal, vec3(0.0, 0.0, 1.0)); 
     vec3 c2 = cross(vs.Normal, vec3(0.0, 1.0, 0.0)); 
     

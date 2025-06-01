@@ -4,10 +4,8 @@
 #include <sstream>
 #include <glm/gtc/type_ptr.hpp>
 
-// Global instance
 ShadowSystem* g_shadowSystem = nullptr;
 
-// Shader loading utility
 std::string readShaderFile(const char* path) {
     std::ifstream file(path);
     std::string content, line;
@@ -23,7 +21,6 @@ GLuint compileShaderFromSource(const std::string& source, GLenum type) {
     glShaderSource(shader, 1, &src, nullptr);
     glCompileShader(shader);
 
-    // Check compilation
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -51,19 +48,16 @@ ShadowSystem::~ShadowSystem() {
 bool ShadowSystem::initialize(int shadowMapSize) {
     this->shadowMapSize = shadowMapSize;
 
-    // Initialize shadow shaders
     if (!initializeShadowShaders()) {
         std::cerr << "Failed to initialize shadow shaders" << std::endl;
         return false;
     }
 
-    // Create sun shadow map
     if (!createShadowMap(sunShadowFBO, sunShadowMap)) {
         std::cerr << "Failed to create sun shadow map" << std::endl;
         return false;
     }
 
-    // Create chandelier shadow maps
     for (int i = 0; i < maxChandelierLights; i++) {
         if (!createShadowMap(chandelierShadowFBOs[i], chandelierShadowMaps[i])) {
             std::cerr << "Failed to create chandelier shadow map " << i << std::endl;
@@ -76,34 +70,27 @@ bool ShadowSystem::initialize(int shadowMapSize) {
 }
 
 bool ShadowSystem::createShadowMap(GLuint& fbo, GLuint& shadowMap) {
-    // Generate framebuffer
     glGenFramebuffers(1, &fbo);
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 
-    // Generate shadow map texture
     glGenTextures(1, &shadowMap);
     glBindTexture(GL_TEXTURE_2D, shadowMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, shadowMapSize, shadowMapSize,
         0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 
-    // Shadow map parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 
-    // Border color for areas outside shadow map
     float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
 
-    // Attach to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, shadowMap, 0);
 
-    // No color buffer needed
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
 
-    // Check framebuffer completeness
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
         std::cerr << "Shadow framebuffer not complete!" << std::endl;
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -115,7 +102,7 @@ bool ShadowSystem::createShadowMap(GLuint& fbo, GLuint& shadowMap) {
 }
 
 bool ShadowSystem::initializeShadowShaders() {
-    // Shadow vertex shader
+    
     std::string shadowVertexSource = R"(
 #version 330 core
 layout (location = 0) in vec3 aPos;

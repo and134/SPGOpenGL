@@ -1,5 +1,4 @@
-﻿// main.cpp - Versiune fixată cu umbre funcționale
-#include <GL/glew.h>
+﻿#include <GL/glew.h>
 #include <GL/freeglut.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -41,7 +40,6 @@ glm::vec3 cameraFront = { 0.0f, 0.0f, -1.0f };
 glm::vec3 cameraUp = { 0.0f, 1.0f,  0.0f };
 float yaw = -90.0f, pitch = 0.0f, fov = 45.0f;
 
-// GL resurse
 GLuint shaderProgram;
 GLuint wallDiffuse, wallNormal;
 GLuint floorDiffuse, floorNormal;
@@ -49,22 +47,23 @@ GLuint ceilDiffuse, ceilNormal;
 
 bool keys[256] = { false };
 
-//timer + input
 float deltaTime = 0.0f, lastFrame = 0.0f;
 
-//Soare - Updated timing and automatic lighting
+//Soare
 bool autonomicMode = false;
 float timeOfDay = 12.0f;
 float dayDuration = 120.0f;
 glm::vec3 sunColor = glm::vec3(1.0f, 0.9f, 0.7f);
 glm::vec3 sunPosition = glm::vec3(0.0f, 2.0f, 0.0f);
 
-// Enhanced lighting parameters
 const float SUNRISE_HOUR = 6.0f;
 const float SUNSET_HOUR = 21.0f;
 const float DAWN_START = 5.0f;
 const float DUSK_END = 22.0f;
 bool autoLightingEnabled = true;
+
+float sunIntensityManual = 1.0f;
+bool sunEnabled = true;
 
 //Candelabru
 Mesh chandelier;
@@ -85,14 +84,10 @@ glm::vec3 tablePos = { 1.0f, -0.95f, -5.0f };
 glm::vec3 tableScale = { 0.3f, 0.3f, 0.3f };
 float tableRotation = 0.0f;
 
-//Lumina Soarelui - Controlled intensity to prevent overexposure
-float sunIntensityManual = 1.0f; // Reduced from 1.5f
-bool sunEnabled = true;
 
-// Color temperature system with controlled intensity to prevent white-out
 glm::vec3 getSunColor(float timeOfDay) {
     if (timeOfDay < DAWN_START || timeOfDay > DUSK_END) {
-        return glm::vec3(0.05f, 0.05f, 0.2f); // Dark blue night
+        return glm::vec3(0.05f, 0.05f, 0.2f); 
     }
 
     if (timeOfDay >= DAWN_START && timeOfDay <= SUNRISE_HOUR) {
@@ -106,7 +101,7 @@ glm::vec3 getSunColor(float timeOfDay) {
     }
 
     if (timeOfDay >= 8.0f && timeOfDay <= 17.0f) {
-        return glm::vec3(0.95f, 0.9f, 0.85f); // Controlled white daylight
+        return glm::vec3(0.95f, 0.9f, 0.85f); 
     }
 
     if (timeOfDay >= 17.0f && timeOfDay <= SUNSET_HOUR) {
@@ -122,7 +117,6 @@ glm::vec3 getSunColor(float timeOfDay) {
     return glm::vec3(0.95f, 0.9f, 0.85f);
 }
 
-//SHADER
 string readFile(const char* path) {
     ifstream f(path);
     string s, line;
@@ -137,7 +131,6 @@ GLuint compileShader(const char* path, GLenum type) {
     glShaderSource(sh, 1, &c, nullptr);
     glCompileShader(sh);
 
-    // Check for compilation errors
     GLint success;
     glGetShaderiv(sh, GL_COMPILE_STATUS, &success);
     if (!success) {
@@ -157,7 +150,6 @@ void initShaders() {
     glAttachShader(shaderProgram, fs);
     glLinkProgram(shaderProgram);
 
-    // Check for linking errors
     GLint success;
     glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
     if (!success) {
@@ -170,7 +162,6 @@ void initShaders() {
     glDeleteShader(fs);
 }
 
-//SOARE - Enhanced sun system
 glm::vec3 calculateSunPosition(float timeOfDay) {
     float normalizedTime = (timeOfDay - 6.0f) / 12.0f;
     if (normalizedTime < 0) normalizedTime = 0;
@@ -183,7 +174,6 @@ glm::vec3 calculateSunPosition(float timeOfDay) {
     return glm::vec3(0.0f, sunHeight, sunZ);
 }
 
-// Enhanced natural light calculation with controlled intensity
 float calculateNaturalLightIntensity(float timeOfDay) {
     if (!sunEnabled) return 0.0f;
 
@@ -193,32 +183,31 @@ float calculateNaturalLightIntensity(float timeOfDay) {
 
     if (timeOfDay >= DAWN_START && timeOfDay < SUNRISE_HOUR) {
         float factor = (timeOfDay - DAWN_START) / (SUNRISE_HOUR - DAWN_START);
-        return factor * 0.2f * sunIntensityManual; // Reduced dawn intensity
+        return factor * 0.2f * sunIntensityManual;
     }
 
     if (timeOfDay >= SUNRISE_HOUR && timeOfDay < 9.0f) {
         float factor = (timeOfDay - SUNRISE_HOUR) / (9.0f - SUNRISE_HOUR);
-        return glm::mix(0.2f, 0.8f, factor) * sunIntensityManual; // Controlled morning rise
+        return glm::mix(0.2f, 0.8f, factor) * sunIntensityManual; 
     }
 
     if (timeOfDay >= 9.0f && timeOfDay <= 16.0f) {
-        return 0.8f * sunIntensityManual; // Reduced midday intensity
+        return 0.8f * sunIntensityManual;
     }
 
     if (timeOfDay > 16.0f && timeOfDay <= SUNSET_HOUR) {
         float factor = (SUNSET_HOUR - timeOfDay) / (SUNSET_HOUR - 16.0f);
-        return glm::mix(0.2f, 0.8f, factor) * sunIntensityManual; // Controlled evening decline
+        return glm::mix(0.2f, 0.8f, factor) * sunIntensityManual;
     }
 
     if (timeOfDay > SUNSET_HOUR && timeOfDay <= DUSK_END) {
         float factor = (DUSK_END - timeOfDay) / (DUSK_END - SUNSET_HOUR);
-        return factor * 0.2f * sunIntensityManual; // Reduced dusk intensity
+        return factor * 0.2f * sunIntensityManual;
     }
 
     return 0.0f;
 }
 
-// Automatic chandelier control based on ambient light
 void updateAutomaticLighting(float timeOfDay) {
     if (!autoLightingEnabled) return;
 
@@ -256,7 +245,7 @@ GLuint loadTex(const char* path) {
     return id;
 }
 
-//COLLISION DETECTION
+//collision detection
 bool checkBoxCollision(const glm::vec3& pos, const glm::vec3& boxCenter, const glm::vec3& boxSize) {
     float margin = 0.3f;
     return (pos.x >= boxCenter.x - boxSize.x - margin && pos.x <= boxCenter.x + boxSize.x + margin &&
@@ -317,11 +306,10 @@ void doMovement() {
     }
 }
 
-//Enhanced controls - VERSIUNEA COMPLETĂ
 void keyDown(unsigned char k, int x, int y) {
     keys[k] = true;
 
-    // Controale pentru candelabru
+	// Intensitate candelabru
     if (k == '+' || k == '=') {
         if (chandelierEnabled) {
             lightIntensity = min(2.0f, lightIntensity + 0.1f);
@@ -335,9 +323,9 @@ void keyDown(unsigned char k, int x, int y) {
         }
     }
 
-    // Control ON/OFF pentru candelabru
+    // Switch candelabru
     if (k == 'c' || k == 'C') {
-        autoLightingEnabled = false; // Disable auto when manually controlling
+        autoLightingEnabled = false;
         chandelierEnabled = !chandelierEnabled;
         if (!chandelierEnabled) {
             lightIntensity = 0.0f;
@@ -350,7 +338,7 @@ void keyDown(unsigned char k, int x, int y) {
             << " (Auto lighting disabled)" << endl;
     }
 
-    // Controale pentru soare
+    // Control soare -- Intensitate
     if (k == 'u' || k == 'U') {
         sunIntensityManual = min(3.0f, sunIntensityManual + 0.1f);
         cout << "Sun intensity: " << sunIntensityManual << endl;
@@ -360,14 +348,13 @@ void keyDown(unsigned char k, int x, int y) {
         cout << "Sun intensity: " << sunIntensityManual << endl;
     }
 
-    // Control ON/OFF pentru soare
+    // Switch soare
     if (k == 'p' || k == 'P') {
         sunEnabled = !sunEnabled;
         cout << "Sun: " << (sunEnabled ? "ON" : "OFF")
             << " - Intensity: " << sunIntensityManual << endl;
     }
 
-    // Toggle automatic lighting
     if (k == 'l' || k == 'L') {
         autoLightingEnabled = !autoLightingEnabled;
         cout << "Automatic lighting: " << (autoLightingEnabled ? "ON" : "OFF") << endl;
@@ -376,7 +363,7 @@ void keyDown(unsigned char k, int x, int y) {
         }
     }
 
-    // Mod total întuneric
+    // Blackout
     if (k == 'x' || k == 'X') {
         autoLightingEnabled = false;
         chandelierEnabled = false;
@@ -385,32 +372,31 @@ void keyDown(unsigned char k, int x, int y) {
         cout << "TOTAL DARKNESS MODE - All lights OFF" << endl;
     }
 
-    // Resetează la normal cu valori controlate
+    // Reset
     if (k == 'r' || k == 'R') {
         autoLightingEnabled = true;
         chandelierEnabled = true;
         lightIntensity = 0.8f;
         sunEnabled = true;
-        sunIntensityManual = 1.0f; // Controlled default
+        sunIntensityManual = 1.0f;
         updateAutomaticLighting(timeOfDay);
         cout << "RESET - All lights restored, auto lighting enabled" << endl;
     }
 
-    // Enhanced time controls
+    // AutoMode switch
     if (k == 't' || k == 'T') {
         autonomicMode = !autonomicMode;
         cout << "Autonomic mode: " << (autonomicMode ? "ON" : "OFF") << endl;
-        cout << "Time of day: " << (int)timeOfDay << ":"
-            << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
+        cout << "Time of day: " << (int)timeOfDay << ":" << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
     }
 
+    //Derulare cu ora 
     if (k == 'n' || k == 'N') {
         timeOfDay += 1.0f;
         if (timeOfDay >= 24.0f) timeOfDay = 0.0f;
         sunPosition = calculateSunPosition(timeOfDay);
         if (autoLightingEnabled) updateAutomaticLighting(timeOfDay);
-        cout << "Time: " << (int)timeOfDay << ":"
-            << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
+        cout << "Time: " << (int)timeOfDay << ":" << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
     }
 
     if (k == 'b' || k == 'B') {
@@ -418,13 +404,12 @@ void keyDown(unsigned char k, int x, int y) {
         if (timeOfDay < 0.0f) timeOfDay = 23.0f;
         sunPosition = calculateSunPosition(timeOfDay);
         if (autoLightingEnabled) updateAutomaticLighting(timeOfDay);
-        cout << "Time: " << (int)timeOfDay << ":"
-            << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
+        cout << "Time: " << (int)timeOfDay << ":"  << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
     }
 
-    // Fast time controls
+    // Derulare 15 min
     if (k == 'm' || k == 'M') {
-        timeOfDay += 0.25f; // 15 minutes
+        timeOfDay += 0.25f; 
         if (timeOfDay >= 24.0f) timeOfDay = 0.0f;
         sunPosition = calculateSunPosition(timeOfDay);
         if (autoLightingEnabled) updateAutomaticLighting(timeOfDay);
@@ -432,7 +417,7 @@ void keyDown(unsigned char k, int x, int y) {
             << (int)((timeOfDay - (int)timeOfDay) * 60) << endl;
     }
 
-    // Controale masă
+    // Control masă
     if (k == '5') {
         tableRotation += 5.0f;
         if (tableRotation >= 360.0f) tableRotation -= 360.0f;
@@ -530,7 +515,6 @@ void setLightingUniforms(GLuint program, const glm::vec3& viewPos) {
     }
     glUniform1f(glGetUniformLocation(program, "normalMapStrength"), 1.0f);
 
-    // Enhanced sun uniforms with color
     glUniform3fv(glGetUniformLocation(program, "sunPosition"), 1, glm::value_ptr(sunPosition));
     glUniform1f(glGetUniformLocation(program, "sunIntensity"), sunEnabled ? calculateNaturalLightIntensity(timeOfDay) : 0.0f);
 
@@ -595,7 +579,6 @@ void display() {
     glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
     glm::vec3 viewPos = cameraPos;
 
-    // Render chandelier
     glm::mat4 chandModel = glm::translate(glm::mat4(1.0f), chandelierPos);
     chandModel = glm::scale(chandModel, glm::vec3(1.0f));
 
@@ -620,7 +603,6 @@ void display() {
     glDrawElements(GL_TRIANGLES, chandelier.indexCount, GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);
 
-    // Calculate enhanced sun intensity and color
     float sunIntensity = calculateNaturalLightIntensity(timeOfDay);
     glm::vec3 currentSunColor = getSunColor(timeOfDay);
 
@@ -641,7 +623,6 @@ int main(int argc, char** argv) {
     glEnable(GL_DEPTH_TEST);
     glutSetCursor(GLUT_CURSOR_NONE);
 
-    // callbacks
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
     glutKeyboardFunc(keyDown);
@@ -649,31 +630,30 @@ int main(int argc, char** argv) {
     glutPassiveMotionFunc(mouseMove);
     glutIdleFunc(idle);
 
-    // shaders + texturi + inițializare room
     initShaders();
     initWindowShaders();
     loadWindowTextures();
 
-    // Initialize lighting system
     initLights();
     initWindows();
 
-    // Încarcă texturile
     wallDiffuse = loadTex("Textures/Wall/wall_Color.jpg");
     wallNormal = loadTex("Textures/Wall/wall_NormalGL.jpg");
+
     floorDiffuse = loadTex("Textures/FloorWood/floor_Color.jpg");
     floorNormal = loadTex("Textures/FloorWood/floor_NormalGL.jpg");
+
     ceilDiffuse = loadTex("Textures/Ceiling/ceiling_Color.jpg");
     ceilNormal = loadTex("Textures/Ceiling/ceiling_NormalGL.jpg");
+
     chandelier = loadOBJ("Objects/Chandelier/chandelier.obj");
     chandelierTex = loadTex("Objects/Chandelier/chandelier_diffuse.jpg");
+
     table = loadOBJ("Objects/Table/table.obj");
     tableTex = loadTex("Objects/Table/table_diffuse.jpg");
 
-    // Inițializează room cu toate texturile
     initRoom(wallDiffuse, wallNormal, floorDiffuse, floorNormal, ceilDiffuse, ceilNormal, shaderProgram);
 
-    // Set initial time and lighting
     timeOfDay = 12.0f;
     sunPosition = calculateSunPosition(timeOfDay);
     updateAutomaticLighting(timeOfDay);
