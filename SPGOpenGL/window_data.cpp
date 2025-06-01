@@ -71,7 +71,7 @@ void initWindows() {
 
     float windowVertices[] = {
         // Pozitie           // Normala        // TexCoord
-     
+
         -1.0f, -0.8f, 9.8f,   0.0f, 0.0f, -1.0f,   0.0f, 0.0f,  // Bottom-left
          1.0f, -0.8f, 9.8f,   0.0f, 0.0f, -1.0f,   1.0f, 0.0f,  // Bottom-right
          1.0f,  0.7f, 9.8f,   0.0f, 0.0f, -1.0f,   1.0f, 1.0f,  // Top-right
@@ -176,6 +176,7 @@ void drawWindows(const glm::mat4& projection, const glm::mat4& view,
 
     glBindVertexArray(windowVAO);
 
+    // Seteazã texturile pentru primul fereastrã
     glUniform1i(glGetUniformLocation(windowShaderProgram, "windowFrame"), 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, windowFrameTex);
@@ -184,11 +185,14 @@ void drawWindows(const glm::mat4& projection, const glm::mat4& view,
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, landscape1Tex);
 
+    // Deseneazã prima fereastrã
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(0 * sizeof(GLuint)));
 
+    // Seteazã textura pentru a doua fereastrã
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, landscape2Tex);
 
+    // Deseneazã a doua fereastrã
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(GLuint)));
 
     glBindVertexArray(0);

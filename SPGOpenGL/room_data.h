@@ -13,5 +13,8 @@ void drawRoom(const glm::mat4& projection,
     const glm::vec3* lightPositions,
     int numLights,
     const glm::vec3& viewPos,
-    float normalMapStrength, 
-    float lightIntensiy);
+    float normalMapStrength,
+    float lightIntensity,
+    const glm::vec3& sunPosition,
+    float sunIntensity,
+    float timeOfDay);
